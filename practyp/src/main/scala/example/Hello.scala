@@ -28,24 +28,28 @@ object Main extends App {
 
   def getCharAndContinue(
     inputString: String,
+    typedString: String,
     term: terminal.Terminal,
     keyStroke: input.KeyStroke
   ): Unit = {
+    textGraphics.putString(5, 2, inputString, SGR.BOLD)
     keyStroke.getKeyType() match {
-      case KeyType.Escape => {}
+      case KeyType.Escape => {term.clearScreen()}
+      case KeyType.Enter  => {term.clearScreen()}
       case other => {
-        textGraphics.drawLine(5, 4, term.getTerminalSize().getColumns() - 1, 4, ' ')
-        textGraphics.putString(5, 4, "Last Keystroke: ", SGR.BOLD)
-        textGraphics.putString(5 + "Last Keystroke: ".length(), 4, keyStroke.toString())
+        //textGraphics.drawLine(5, 4, term.getTerminalSize().getColumns() - 1, 4, ' ')
+        //textGraphics.putString(5, 4, "Last Keystroke: ", SGR.BOLD)
+        val newTypedString = typedString + keyStroke.getCharacter().toString()
+        textGraphics.putString(5, 4, newTypedString)
         term.flush()
         val newKeyStroke = term.readInput()
-        getCharAndContinue(inputString, term, newKeyStroke)
+        getCharAndContinue(inputString, newTypedString, term, newKeyStroke)
       }
     }
   }
 
   val ks = term.readInput()
-  getCharAndContinue("asdf df asdf", term, ks)
+  getCharAndContinue("asdf df asdf", "", term, ks)
 
   // Iterator.continually(
   //   {
