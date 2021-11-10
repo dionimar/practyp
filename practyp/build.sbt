@@ -7,6 +7,7 @@ ThisBuild / organizationName := "example"
 
 libraryDependencies += "org.typelevel" %% "cats-core" % "2.3.0"
 libraryDependencies += "org.typelevel" %% "cats-effect" % "3.2.9"
+libraryDependencies += "org.scala-lang" % "jline" % "2.10.7"
 
 lazy val root = (project in file("."))
   .settings(
