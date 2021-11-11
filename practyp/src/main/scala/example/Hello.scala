@@ -8,9 +8,24 @@ import scala.math.pow
 
 import com.googlecode.lanterna.terminal.Terminal
 import com.googlecode.lanterna._
+import com.googlecode.lanterna.TextColor
 import com.googlecode.lanterna.input.KeyType
 
 
+
+object stringJoiner {
+  def test(a: String, b: String) = "\u001B[38;5;76m" + a
+  def join(a: String, b: String) =
+    a.zipAll(b, "", "")
+      .map(x => x._1 == x._2 match {
+        case true => "\u001B[38;5;76m" + x._1
+        case other => x._2 == "" match {
+          case true => "\u001B[38;5;246m" + x._1
+          case _ => "\u001B[38;5;161m" + x._1
+        }
+      })
+      .mkString("")
+}
 
 
 class termEnv(val term: terminal.Terminal, val graphs: graphics.TextGraphics)
@@ -35,11 +50,22 @@ object Main extends IOApp.Simple {
   }
 
   def drawCurrentState(env: termEnv, inputString: String, typedString: String): IO[Unit] = {
+    val formatted = stringJoiner.join(inputString, typedString)
     for {
       _ <- IO(env.graphs.putString(5, 2, inputString, SGR.BOLD))
       _ <- IO(env.graphs.putString(5, 4, typedString))
       _ <- IO(env.term.flush())
     } yield ()
+  }
+
+  def drawStatistics(env: termEnv, inputString: String, targetString: String, time: Double): IO[Unit] = {
+    val wpm = inputString.split(" ").size.toDouble * 60 / time
+    //val acc = 
+    for {
+      _ <- IO(env.graphs.putString(5, 2, targetString, SGR.BOLD))
+      _ <- IO(env.graphs.putString(5, 4, "Speed " + wpm + " WPM"))
+      _ <- IO(env.graphs.putString(5, 5, "Accuracy"))
+    } yield()
   }
 
   def getCharAndContinue(
@@ -87,13 +113,14 @@ object Main extends IOApp.Simple {
       results <- startTyping(env, "Type this as fast as you can")
       elapsedTime <- IO(results._2)
       typedString <- IO(results._1)
-      _ <- drawCurrentState(env, typedString, "Elapsed time: " + elapsedTime + " s.")
+      //_ <- drawCurrentState(env, typedString, "Elapsed time: " + elapsedTime + " s.")
+      _ <- drawStatistics(env, "Type this as fast as you can", typedString, elapsedTime)
     } yield ()
   }
 
   def run() = for {
     _ <- mainLoop(env)
-    _ <- IO(println("Type r to repeat, q to quit."))
+    _ <- IO(env.graphs.putString(5, 8, "Type r to repeat, q to quit."))
     choice <- IO(env.term.readInput())
     _ <- choice.getCharacter().toString() match {
         case "q" => IO{}
