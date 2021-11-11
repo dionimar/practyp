@@ -81,10 +81,23 @@ object Main extends IOApp.Simple {
     } yield ((typedResult._1, (endTimer - startTimer).toSeconds))
   }
 
-  val run = for {
-    results <- startTyping(env, "Type this as fast as you can")
-    elapsedTime <- IO(results._2)
-    typedString <- IO(results._1)
-    _ <- drawCurrentState(env, typedString, "Elapsed time: " + elapsedTime + " s.")
+  def mainLoop(env: termEnv): IO[Unit] = {
+    for {
+      _ <- IO(env.term.clearScreen())
+      results <- startTyping(env, "Type this as fast as you can")
+      elapsedTime <- IO(results._2)
+      typedString <- IO(results._1)
+      _ <- drawCurrentState(env, typedString, "Elapsed time: " + elapsedTime + " s.")
+    } yield ()
+  }
+
+  def run() = for {
+    _ <- mainLoop(env)
+    _ <- IO(println("Type r to repeat, q to quit."))
+    choice <- IO(env.term.readInput())
+    _ <- choice.getCharacter().toString() match {
+        case "q" => IO{}
+        case "r" => run()
+      }
   } yield ()
 }
