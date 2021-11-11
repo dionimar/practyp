@@ -17,7 +17,7 @@ import java.util.Scanner
 import javax.swing.KeyStroke
 
 
-object Main extends App {
+object Main extends IOApp.Simple {
   val defaultTerminalFactory = new terminal.DefaultTerminalFactory()
   val term = defaultTerminalFactory.createTerminal()
   term.clearScreen()
@@ -26,55 +26,62 @@ object Main extends App {
 
   //var keyStroke = term.readInput()
 
+  val env = (term, textGraphics)
+
   def getCharAndContinue(
     inputString: String,
     typedString: String,
-    term: terminal.Terminal,
-    keyStroke: input.KeyStroke
-  ): Unit = {
-    textGraphics.putString(5, 2, inputString, SGR.BOLD)
+    env: (terminal.Terminal, graphics.TextGraphics),
+    keyStroke: input.KeyStroke): IO[(String, (terminal.Terminal, graphics.TextGraphics))] =
+  {
+    val term = env._1
+    val graphs = env._2
     keyStroke.getKeyType() match {
-      case KeyType.Escape => {term.clearScreen()}
-      case KeyType.Enter  => {term.clearScreen()}
+      case KeyType.Escape => IO {term.clearScreen(); (typedString, env)}
+      case KeyType.Enter  => IO {term.clearScreen(); (typedString, env)}
+      case KeyType.Delete | KeyType.Backspace => {
+        for {
+          _ <- IO(graphs.putString(5, 2, inputString, SGR.BOLD))
+          newTypedString <- IO(typedString.dropRight(1))
+          _ <- IO(graphs.putString(5, 4, newTypedString))
+          _ <- IO(term.putCharacter(' '))
+          _ <- IO(term.setCursorPosition(term.getCursorPosition().withRelativeColumn(-1)))
+          _ <- IO(term.flush())
+          newKeyStroke <- IO(term.readInput())
+          typedResult <- getCharAndContinue(inputString, newTypedString, env, newKeyStroke)
+        } yield ((typedResult._1, env))
+      }
       case other => {
-        //textGraphics.drawLine(5, 4, term.getTerminalSize().getColumns() - 1, 4, ' ')
-        //textGraphics.putString(5, 4, "Last Keystroke: ", SGR.BOLD)
-        val newTypedString = typedString + keyStroke.getCharacter().toString()
-        textGraphics.putString(5, 4, newTypedString)
-        term.flush()
-        val newKeyStroke = term.readInput()
-        getCharAndContinue(inputString, newTypedString, term, newKeyStroke)
+        for {
+          _ <- IO(graphs.putString(5, 2, inputString, SGR.BOLD))
+          newTypedString <- IO(typedString + keyStroke.getCharacter().toString())
+          _ <- IO(graphs.putString(5, 4, newTypedString))
+          _ <- IO(term.flush())
+          newKeyStroke <- IO(term.readInput())
+          typedResult <- getCharAndContinue(inputString, newTypedString, env, newKeyStroke)
+        } yield ((typedResult._1, env))
       }
     }
   }
 
   val ks = term.readInput()
-  getCharAndContinue("asdf df asdf", "", term, ks)
+  def runTimer(typer: String) = for {
+    start <- Clock[IO].monotonic
+    res <- getCharAndContinue(typer, "", env, ks)
+    typedString <- IO(res._1)
+    env <- IO(res._2)
+    ending <- Clock[IO].monotonic
+  } yield(ending - start, typedString)
 
-  // Iterator.continually(
-  //   {
-  //     val keyStroke = term.readInput()
-  //     textGraphics.drawLine(5, 4, term.getTerminalSize().getColumns() - 1, 4, ' ')
-  //     textGraphics.putString(5, 4, "Last Keystroke: ", SGR.BOLD)
-  //     textGraphics.putString(5 + "Last Keystroke: ".length(), 4, keyStroke.toString())
-  //     term.flush()
-  //     keyStroke
-  //   }
-  // )
-  //   .takeWhile(_.getKeyType() != KeyType.Escape)
-  //   .toList
-
-  // while(keyStroke.getKeyType() != KeyType.Escape) {
-  //   textGraphics.drawLine(5, 4, term.getTerminalSize().getColumns() - 1, 4, ' ');
-  //   textGraphics.putString(5, 4, "Last Keystroke: ", SGR.BOLD);
-  //   textGraphics.putString(5 + "Last Keystroke: ".length(), 4, keyStroke.toString());
-  //   term.flush();
-  //   keyStroke = term.readInput();
-  // }
-
-  // val in = Iterator.continually(
-
-  // )
+  val run = for {
+    results <- runTimer("Type this as fast as you can")
+    elapsedTime <- IO(results._1)
+    typedString <- IO(results._2)
+    _ <- IO(println(typedString.split(" ").size))
+    // _ <- IO(println(typedResult))
+    _ <- IO(println(elapsedTime.toSeconds + " WPM"))
+    _ <- IO(println(typedString))
+  } yield ()
 
 
 }
