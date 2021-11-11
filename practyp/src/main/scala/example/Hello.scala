@@ -12,9 +12,10 @@ import com.googlecode.lanterna.terminal.Terminal
 import com.googlecode.lanterna._
 import com.googlecode.lanterna.input.KeyType
 
-//import scala.utils.jline
-import java.util.Scanner
-import javax.swing.KeyStroke
+
+
+
+class termEnv(val term: terminal.Terminal, val graphs: graphics.TextGraphics)
 
 
 object Main extends IOApp.Simple {
@@ -24,19 +25,22 @@ object Main extends IOApp.Simple {
 
   val textGraphics = term.newTextGraphics()
 
-  //var keyStroke = term.readInput()
-
-  class termEnv(val term: terminal.Terminal, val graphs: graphics.TextGraphics)
-
   val env = new termEnv(term, textGraphics)
 
-  def drawCurrentState(env: termEnv, inputString: String, typedString: String): IO[Unit] = {
-    val term = env.term
-    val graphs = env.graphs
+
+  def deleteLastChar(env: termEnv): IO[Unit] = {
     for {
-      _ <- IO(graphs.putString(5, 2, inputString, SGR.BOLD))
-      _ <- IO(graphs.putString(5, 4, typedString))
-      _ <- IO(term.flush())
+      _ <- IO(env.term.setCursorPosition(term.getCursorPosition().withRelativeColumn(-1)))
+      _ <- IO(env.term.putCharacter(' '))
+      _ <- IO(env.term.flush())
+    } yield ()
+  }
+
+  def drawCurrentState(env: termEnv, inputString: String, typedString: String): IO[Unit] = {
+    for {
+      _ <- IO(env.graphs.putString(5, 2, inputString, SGR.BOLD))
+      _ <- IO(env.graphs.putString(5, 4, typedString))
+      _ <- IO(env.term.flush())
     } yield ()
   }
 
@@ -46,28 +50,23 @@ object Main extends IOApp.Simple {
     env: termEnv,
     keyStroke: input.KeyStroke): IO[(String, termEnv)] =
   {
-    val term = env.term
-    val graphs = env.graphs
     keyStroke.getKeyType() match {
-      case KeyType.Escape => IO {term.clearScreen(); (typedString, env)}
-      case KeyType.Enter  => IO {term.clearScreen(); (typedString, env)}
+      case KeyType.Escape => IO {env.term.clearScreen(); (typedString, env)}
+      case KeyType.Enter  => IO {env.term.clearScreen(); (typedString, env)}
       case KeyType.Delete | KeyType.Backspace => {
+        val newTypedString = typedString.dropRight(1)
         for {
-          _ <- IO(graphs.putString(5, 2, inputString, SGR.BOLD))
-          newTypedString <- IO(typedString.dropRight(1))
-          _ <- IO(graphs.putString(5, 4, newTypedString))
-          _ <- IO(term.putCharacter(' '))
-          _ <- IO(term.setCursorPosition(term.getCursorPosition().withRelativeColumn(-1)))
-          _ <- IO(term.flush())
-          newKeyStroke <- IO(term.readInput())
+          _ <- deleteLastChar(env)
+          _ <- drawCurrentState(env, inputString, newTypedString)
+          newKeyStroke <- IO(env.term.readInput())
           typedResult <- getCharAndContinue(inputString, newTypedString, env, newKeyStroke)
         } yield ((typedResult._1, env))
       }
       case other => {
+        val newTypedString = typedString + keyStroke.getCharacter().toString()
         for {
-          newTypedString <- IO(typedString + keyStroke.getCharacter().toString())
           _ <- drawCurrentState(env, inputString, newTypedString)
-          newKeyStroke <- IO(term.readInput())
+          newKeyStroke <- IO(env.term.readInput())
           typedResult <- getCharAndContinue(inputString, newTypedString, env, newKeyStroke)
         } yield ((typedResult._1, env))
       }
@@ -92,8 +91,4 @@ object Main extends IOApp.Simple {
     _ <- IO(println(elapsedTime.toSeconds + " WPM"))
     _ <- IO(println(typedString))
   } yield ()
-
-
 }
-
-
