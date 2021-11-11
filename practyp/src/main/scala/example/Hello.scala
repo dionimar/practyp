@@ -1,7 +1,5 @@
 package example
 
-
-//import cats.effect.unsafe.implicits.global
 import cats.data.ContT
 import cats.effect._
 import scala.concurrent.duration._
@@ -73,22 +71,20 @@ object Main extends IOApp.Simple {
     }
   }
 
-  val ks = term.readInput()
-  def runTimer(typer: String) = for {
-    start <- Clock[IO].monotonic
-    res <- getCharAndContinue(typer, "", env, ks)
-    typedString <- IO(res._1)
-    env <- IO(res._2)
-    ending <- Clock[IO].monotonic
-  } yield(ending - start, typedString)
+  def startTyping(env: termEnv, inputString: String): IO[(String, Double)] = {
+    for {
+      _ <- drawCurrentState(env, inputString, "")
+      kp <- IO(env.term.readInput())
+      startTimer <- Clock[IO].monotonic
+      typedResult <- getCharAndContinue(inputString, "", env, kp)
+      endTimer <- Clock[IO].monotonic
+    } yield ((typedResult._1, (endTimer - startTimer).toSeconds))
+  }
 
   val run = for {
-    results <- runTimer("Type this as fast as you can")
-    elapsedTime <- IO(results._1)
-    typedString <- IO(results._2)
-    _ <- IO(println(typedString.split(" ").size))
-    // _ <- IO(println(typedResult))
-    _ <- IO(println(elapsedTime.toSeconds + " WPM"))
-    _ <- IO(println(typedString))
+    results <- startTyping(env, "Type this as fast as you can")
+    elapsedTime <- IO(results._2)
+    typedString <- IO(results._1)
+    _ <- drawCurrentState(env, typedString, "Elapsed time: " + elapsedTime + " s.")
   } yield ()
 }
