@@ -126,35 +126,6 @@ object Main extends IOApp.Simple {
     } yield()
   }
 
-  // def getCharAndContinue(
-  //   inputString: String,
-  //   typedString: String,
-  //   env: termEnv,
-  //   keyStroke: input.KeyStroke): IO[(String, termEnv)] =
-  // {
-  //   keyStroke.getKeyType() match {
-  //     case KeyType.Escape => IO {env.clear(); (typedString, env)}
-  //     case KeyType.Enter  => IO {env.clear(); (typedString, env)}
-  //     case KeyType.Delete | KeyType.Backspace => {
-  //       val newTypedString = typedString.dropRight(1)
-  //       for {
-  //         _ <- deleteLastChar(env)
-  //         _ <- drawCurrentState(env, inputString, newTypedString)
-  //         newKeyStroke <- IO(env.read())
-  //         typedResult <- getCharAndContinue(inputString, newTypedString, env, newKeyStroke)
-  //       } yield ((typedResult._1, env))
-  //     }
-  //     case other => {
-  //       val newTypedString = typedString + keyStroke.getCharacter().toString()
-  //       for {
-  //         _ <- drawCurrentState(env, inputString, newTypedString)
-  //         newKeyStroke <- IO(env.read())
-  //         typedResult <- getCharAndContinue(inputString, newTypedString, env, newKeyStroke)
-  //       } yield ((typedResult._1, env))
-  //     }
-  //   }
-  // }
-
   def readLine(env: faceEnvironment): IO[String] = {
     for {
       typedString <- IO(env.readLine())
@@ -164,9 +135,7 @@ object Main extends IOApp.Simple {
   def startTyping(env: faceEnvironment, inputString: String): IO[(String, Double)] = {
     for {
       _ <- drawCurrentState(env, inputString, "")
-      //kp <- IO(env.read())
       startTimer <- Clock[IO].monotonic
-      //typedResult <- getCharAndContinue(inputString, "", env, kp) // If enable, take firs comp
       typedResult <- readLine(env)
       endTimer <- Clock[IO].monotonic
     } yield ((typedResult, (endTimer - startTimer).toSeconds))
@@ -191,6 +160,7 @@ object Main extends IOApp.Simple {
   }
 
   def askForChoice(env: faceEnvironment): IO[Unit] = for {
+    _ <- IO(env.print(2, 8, "Type r to repeat, q to quit."))
     choice <- IO(env.readChar())
     _ <- choice match {
       case Left(_) => askForChoice(env)
@@ -206,7 +176,6 @@ object Main extends IOApp.Simple {
     val env = rawTerm
     for {
       _ <- mainLoop(env)
-      _ <- IO(env.print(2, 8, "Type r to repeat, q to quit."))
       _ <- askForChoice(env)
     } yield ()
   }
