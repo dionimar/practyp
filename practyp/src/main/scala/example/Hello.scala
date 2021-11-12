@@ -47,7 +47,7 @@ trait faceEnvironment {
   def clear()
   def readLine(): String
   def readChar(): Either[Throwable, String]
-  def print(col: Int, row: Int, str: String)
+  def printText(col: Int, row: Int, str: String)
   def delChar()
 }
 
@@ -55,9 +55,15 @@ case object rawTerm extends faceEnvironment {
   def flush() = {}
   def read() = {}
   def clear() = {println("\u001b[2J")}
-  def readLine() = scalaReadLine()
+  def readLine() = {
+    val in = scalaReadLine()
+    print("\u001b[1A" + "\u001b[2K")
+    print("\u001b[1A" + "\u001b[2K")
+    println("\u001b[1A" + "\u001b[2K")
+    in
+  }
   def readChar() = Try(scalaReadChar().toString).toEither
-  def print(col: Int, row: Int, str: String) =
+  def printText(col: Int, row: Int, str: String) =
     println(
         Iterator.continually({"\t"}).take(col).mkString("") + str
     )
@@ -72,7 +78,7 @@ class termEnv(val term: terminal.Terminal, val graphs: graphics.TextGraphics) ex
   def clear() = term.clearScreen()
   def readLine() = scalaReadLine()
   def readChar() = Try(scalaReadChar().toString).toEither
-  def print(col: Int, row: Int, str: String) = graphs.putString(col, row, str)
+  def printText(col: Int, row: Int, str: String) = graphs.putString(col, row, str)
   def delChar() = {
     term.setCursorPosition(term.getCursorPosition().withRelativeColumn(-1))
     term.putCharacter(' ')
@@ -101,8 +107,8 @@ object Main extends IOApp.Simple {
   def drawCurrentState(env: faceEnvironment, inputString: String, typedString: String): IO[Unit] = {
     val formatted = stringJoiner.join(inputString, typedString)
     for {
-      _ <- IO(env.print(2, 2, inputString))
-      _ <- IO(env.print(2, 4, typedString))
+      _ <- IO(env.printText(2, 2, inputString))
+      _ <- IO(env.printText(2, 4, typedString))
       _ <- IO(env.flush())
     } yield ()
   }
@@ -120,9 +126,9 @@ object Main extends IOApp.Simple {
     val acc = compStrings.sum.toDouble / compStrings.length.toDouble
 
     for {
-      _ <- IO(env.print(2, 2, stringJoiner.join(inputString, targetString)))
-      _ <- IO(env.print(2, 4, s"Speed ${wpm} WPM"))
-      _ <- IO(env.print(2, 2, s"Accuracy ${acc} %"))
+      _ <- IO(env.printText(2, 2, stringJoiner.join(inputString, targetString)))
+      _ <- IO(env.printText(2, 4, s"Speed ${wpm} WPM"))
+      _ <- IO(env.printText(2, 2, s"Accuracy ${acc} %"))
     } yield()
   }
 
@@ -160,7 +166,7 @@ object Main extends IOApp.Simple {
   }
 
   def askForChoice(env: faceEnvironment): IO[Unit] = for {
-    _ <- IO(env.print(2, 8, "Type r to repeat, q to quit."))
+    _ <- IO(env.printText(2, 8, "Type r to repeat, q to quit."))
     choice <- IO(env.readChar())
     _ <- choice match {
       case Left(_) => askForChoice(env)
