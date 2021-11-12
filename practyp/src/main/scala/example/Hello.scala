@@ -5,7 +5,7 @@ import cats.effect._
 import scala.concurrent.duration._
 import scala.io.StdIn.{readLine => scalaReadLine, readChar => scalaReadChar}
 //import scala.math.{pow, abs}
-import scala.util.Random
+import scala.util.{Random, Try}
 
 import scala.swing._
 
@@ -28,7 +28,7 @@ object randElems {
 object stringJoiner {
   def test(a: String, b: String) = "\u001B[38;5;76m" + a
   def join(a: String, b: String) =
-    a.zipAll(b, "", "")
+    a.split(" ").zipAll(b.split(" "), "", "")
       .map(x => x._1 == x._2 match {
         case true => "\u001B[38;5;76m" + x._1
         case other => x._2 == "" match {
@@ -36,7 +36,7 @@ object stringJoiner {
           case _ => "\u001B[38;5;161m" + x._1
         }
       })
-      .mkString("") + "\u001B[0m"
+      .mkString(" ") + "\u001B[0m"
 }
 
 
@@ -46,7 +46,7 @@ trait faceEnvironment {
   def read()
   def clear()
   def readLine(): String
-  def readChar(): String
+  def readChar(): Either[Throwable, String]
   def print(col: Int, row: Int, str: String)
   def delChar()
 }
@@ -56,7 +56,7 @@ case object rawTerm extends faceEnvironment {
   def read() = {}
   def clear() = {println("\u001b[2J")}
   def readLine() = scalaReadLine()
-  def readChar() = scalaReadChar().toString
+  def readChar() = Try(scalaReadChar().toString).toEither
   def print(col: Int, row: Int, str: String) =
     println(
         Iterator.continually({"\t"}).take(col).mkString("") + str
@@ -71,7 +71,7 @@ class termEnv(val term: terminal.Terminal, val graphs: graphics.TextGraphics) ex
   def read() = term.readInput()
   def clear() = term.clearScreen()
   def readLine() = scalaReadLine()
-  def readChar() = scalaReadChar().toString
+  def readChar() = Try(scalaReadChar().toString).toEither
   def print(col: Int, row: Int, str: String) = graphs.putString(col, row, str)
   def delChar() = {
     term.setCursorPosition(term.getCursorPosition().withRelativeColumn(-1))
@@ -174,7 +174,13 @@ object Main extends IOApp.Simple {
 
   def mainLoop(env: faceEnvironment): IO[Unit] = {
     val dictionary = SpanishWords.words
-    val sampleWords = randElems(10, dictionary).mkString(" ").replaceAll("[^\\p{ASCII}]", "")
+    val sampleWords = randElems(10, dictionary)
+      .mkString(" ")
+      .replaceAll("á", "a")
+      .replaceAll("é", "e")
+      .replaceAll("í", "i")
+      .replaceAll("ó", "o")
+      .replaceAll("ú", "u")
     for {
       _ <- IO(env.clear())
       results <- startTyping(env, sampleWords)
@@ -187,9 +193,12 @@ object Main extends IOApp.Simple {
   def askForChoice(env: faceEnvironment): IO[Unit] = for {
     choice <- IO(env.readChar())
     _ <- choice match {
-      case "q" => IO{}
-      case "r" => run()
-      case other => askForChoice(env)
+      case Left(_) => askForChoice(env)
+      case Right(ch) => ch match {
+        case "q" => IO{}
+        case "r" => run()
+        case other => askForChoice(env)
+      }
     }
   } yield()
 
