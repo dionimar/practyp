@@ -123,7 +123,7 @@ object Main extends IOApp.Simple {
           case false => 0
         }
       )
-    val acc = compStrings.sum.toDouble / compStrings.length.toDouble
+    val acc = 100 * compStrings.sum.toDouble / compStrings.length.toDouble
 
     for {
       _ <- IO(env.printText(2, 2, stringJoiner.join(inputString, targetString)))
