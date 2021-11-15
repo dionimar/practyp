@@ -17,6 +17,10 @@ import com.googlecode.lanterna.TextColor
 import com.googlecode.lanterna.input.KeyType
 
 
+import practyp.Interpreters._
+import practyp.Programs._
+
+
 
 
 object randElems {
@@ -99,9 +103,6 @@ object termEnv {
 
 object Main extends IOApp.Simple {
 
-  import TypeTest.Interpreter._
-  import TypeTest.Program._
-
   def deleteLastChar(env: faceEnvironment): IO[Unit] = {
     for {
       _ <- IO(env.delChar())
@@ -171,8 +172,6 @@ object Main extends IOApp.Simple {
   // }
 
   def mainLoop(env: faceEnvironment): IO[Unit] = {
-    import TypeTest.Interpreter._
-    import TypeTest.TestProperties
     val dictionary = SpanishWords.words
     val sampleWords = randElems(10, dictionary)
       .mkString(" ")
@@ -182,7 +181,7 @@ object Main extends IOApp.Simple {
       .replaceAll("ó", "o")
       .replaceAll("ú", "u")
     for {
-      _ <- TypeTest.Program.runTest[IO, String, String, TestProperties[String, String]](sampleWords)
+      _ <- Programs.runTest[IO, String, String, TestProperties[String, String]](sampleWords)
     } yield ()
   }
 
