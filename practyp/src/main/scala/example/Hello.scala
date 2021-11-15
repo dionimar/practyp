@@ -2,6 +2,8 @@ package practyp
 
 import cats.data.ContT
 import cats.effect._
+import cats.implicits._
+
 import scala.concurrent.duration._
 import scala.io.StdIn.{readLine => scalaReadLine, readChar => scalaReadChar}
 //import scala.math.{pow, abs}
@@ -97,6 +99,9 @@ object termEnv {
 
 object Main extends IOApp.Simple {
 
+  import TypeTest.Interpreter._
+  import TypeTest.Program._
+
   def deleteLastChar(env: faceEnvironment): IO[Unit] = {
     for {
       _ <- IO(env.delChar())
@@ -147,7 +152,27 @@ object Main extends IOApp.Simple {
     } yield ((typedResult, (endTimer - startTimer).toSeconds))
   }
 
+  // def mainLoop(env: faceEnvironment): IO[Unit] = {
+  //   val dictionary = SpanishWords.words
+  //   val sampleWords = randElems(10, dictionary)
+  //     .mkString(" ")
+  //     .replaceAll("á", "a")
+  //     .replaceAll("é", "e")
+  //     .replaceAll("í", "i")
+  //     .replaceAll("ó", "o")
+  //     .replaceAll("ú", "u")
+  //   for {
+  //     _ <- IO(env.clear())
+  //     results <- startTyping(env, sampleWords)
+  //     elapsedTime <- IO(results._2)
+  //     typedString <- IO(results._1)
+  //     _ <- drawStatistics(env, sampleWords, typedString, elapsedTime)
+  //   } yield ()
+  // }
+
   def mainLoop(env: faceEnvironment): IO[Unit] = {
+    import TypeTest.Interpreter._
+    import TypeTest.TestProperties
     val dictionary = SpanishWords.words
     val sampleWords = randElems(10, dictionary)
       .mkString(" ")
@@ -157,11 +182,7 @@ object Main extends IOApp.Simple {
       .replaceAll("ó", "o")
       .replaceAll("ú", "u")
     for {
-      _ <- IO(env.clear())
-      results <- startTyping(env, sampleWords)
-      elapsedTime <- IO(results._2)
-      typedString <- IO(results._1)
-      _ <- drawStatistics(env, sampleWords, typedString, elapsedTime)
+      _ <- TypeTest.Program.runTest[IO, String, String, TestProperties[String, String]](sampleWords)
     } yield ()
   }
 
