@@ -1,4 +1,4 @@
-package example
+package practyp
 
 object SpanishWords {
   val words = List(

@@ -1,4 +1,4 @@
-package example
+package practyp
 
 import cats.data.ContT
 import cats.effect._
