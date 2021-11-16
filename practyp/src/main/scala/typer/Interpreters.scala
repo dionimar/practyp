@@ -52,12 +52,19 @@ object Interpreters {
     } yield(output)
   }
 
-  implicit val implTargetSpace: List[String] = SpanishWords.words
-
-  implicit def getNextTargetString(implTargetSpace: List[String], n: Int): String = {
-    lazy val listSize = implTargetSpace.length
-    Iterator.continually(implTargetSpace(Random.nextInt(listSize))).take(n).toList.mkString(" ")
+  class mapTargetSpace() {
+    var internalMap: Map[String, Int] = SpanishWords.words.map(x => (x -> 1)).toMap
+    def next(n: Int): String = {
+      lazy val targetList = this.internalMap.toSeq
+      lazy val listSize = targetList.length
+      lazy val targets = targetList.toList.sortBy(_._2).take(n)
+      this.internalMap = (this.internalMap.toSeq ++ targets.toSeq).groupBy(_._1).mapValues(x => x.map(_._2).sum).toMap
+      targets.map(_._1).mkString(" ")
+    }
   }
 
+  val mapTargetInstance = new mapTargetSpace()
 
+  implicit val implTargetSpace: Map[String, Int] = mapTargetInstance.internalMap
+  implicit def getNextTargetString(tg: Map[String, Int], n: Int): String = mapTargetInstance.next(n)
 }

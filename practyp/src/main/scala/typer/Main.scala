@@ -13,9 +13,10 @@ import practyp.Programs._
 
 
 object Main extends IOApp.Simple {
+  type M[T] = Map[T, Int]
   def run() = {
     for {
-      _ <- Programs.askMenu[IO, String, String, List, TestProperties[String, String]]()
+      _ <- Programs.askMenu[IO, String, String, M, TestProperties[String, String]]()
     } yield ()
   }
 }
