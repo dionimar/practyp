@@ -5,7 +5,10 @@ package practyp
 // F[_] stands for effects
 trait TypingTest[F[_], Result, Target, TestProp] {
   def getResult(target: Target)(implicit presenter: Presenter[F]): F[TestProp]
-  def compScore(testProperties: TestProp): Score
+  // compute a single test score
+  def compScore(testProperties: TestProp): Summary
+  // combine function to extract an aggregated score for current and previous one
+  def combScores(lastScore: Summary, currentScore: Summary): Summary
 }
 // TypingTest properties should be defined in companion object
 object TypingTest {}

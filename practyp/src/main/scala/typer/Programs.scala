@@ -14,12 +14,13 @@ object Programs {
   def runTest[T[_]: Monad, Result, Target, TestProp](testInput: Target)
     (implicit test: TypingTest[T, Result, Target, TestProp],
       presenter: Presenter[T]
-    ): T[Unit] = {
+    ): T[TestProp] = {
     for {
       res <- test.getResult(testInput)
-      score <- Monad[T].pure(test.compScore(res))
-      _ <- presenter.show(score)
-    } yield()
+      //score <- Monad[T].pure(test.compScore(res))
+      //score <- test.compScore(res)
+      //_ <- presenter.show(score)
+    } yield(res)
   }
 
   def testRunner[T[_]: Monad, Result, Target, TgSpace[Target], TestProp](n: Int)
@@ -27,26 +28,32 @@ object Programs {
       presenter: Presenter[T],
       targetSpace: TgSpace[Target],
       getNextTarget: (TgSpace[Target], Int) => Target
-    ): T[Unit] = {
+    ): T[Summary] = {
     val nextTest = getNextTarget(targetSpace, n)
     for {
-      _ <- runTest[T, Result, Target, TestProp](nextTest)
-    } yield()
+      testResult <- runTest[T, Result, Target, TestProp](nextTest)
+      testScore <- Monad[T].pure(test.compScore(testResult))
+      //_ <- presenter.show(testScore)
+    } yield(testScore)
   }
 
-  def askMenu[T[_]: Monad, Result, Target, TgSpace[Target], TestProp]()
+  def askMenu[T[_]: Monad, Result, Target, TgSpace[Target], TestProp](lastScore: Option[Summary])
     (implicit test: TypingTest[T, Result, Target, TestProp],
       presenter: Presenter[T],
       targetSpace: TgSpace[Target],
       getNextTarget: (TgSpace[Target], Int) => Target
     ): T[Unit] = {
     for {
-      _ <- testRunner[T, Result, Target, TgSpace, TestProp](10)
+      testScore <- testRunner[T, Result, Target, TgSpace, TestProp](10)
+      _ <- presenter.show(testScore)
+      //_ <- presenter.show(lastScore.getOrElse(Summary(0, 0)))
+      c <- Monad[T].pure(test.combScores(testScore, lastScore.getOrElse(testScore)))
+      _ <- presenter.show(c)
       _ <- presenter.show("Type q to quit")
       choice <- presenter.getOption()
       _ <- choice match {
         case Right("q") => Monad[T].pure({})
-        case other => askMenu[T, Result, Target, TgSpace, TestProp]()
+        case other => askMenu[T, Result, Target, TgSpace, TestProp](Some(testScore))
       }
     } yield()
   }

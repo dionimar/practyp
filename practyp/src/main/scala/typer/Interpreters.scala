@@ -33,13 +33,17 @@ object Interpreters {
         } yield(TestProperties[String, String](target, res, (timerEnd - timerStart).toSeconds.toDouble))
       }
 
-      def compScore(testProperties: TestProperties[String, String]): Score = {
+      def compScore(testProperties: TestProperties[String, String]): Summary = {
         val wpm = testProperties.input.split(" ").size.toDouble * 60 / testProperties.elapsedTime
         val compStrings = testProperties.output
           .zipAll(testProperties.input, "", "")
           .map(x => x._1 == x._2)
         val acc = 100 * compStrings.count(_ == true).toDouble / compStrings.length.toDouble
         new Summary(wpm, acc)
+      }
+
+      def combScores(lastScore: Summary, currentScore: Summary): Summary = {
+        Summary((lastScore.wpm + currentScore.wpm) / 2, (lastScore.accuracy + currentScore.accuracy) / 2)
       }
     }
 
