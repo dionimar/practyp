@@ -43,6 +43,7 @@ object Programs {
       testScore <- testRunner[T, Result, Target, TgSpace, TestProp](10)
       _ <- presenter.show(testScore)
       c <- Monad[T].pure(test.combScores(testScore, lastScore.getOrElse(testScore)))
+      _ <- presenter.show("Aggregated Results")
       _ <- presenter.show(c)
       _ <- presenter.show("Type q to quit")
       choice <- presenter.getOption()
