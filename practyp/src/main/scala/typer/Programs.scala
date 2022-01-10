@@ -17,9 +17,6 @@ object Programs {
     ): T[TestProp] = {
     for {
       res <- test.getResult(testInput)
-      //score <- Monad[T].pure(test.compScore(res))
-      //score <- test.compScore(res)
-      //_ <- presenter.show(score)
     } yield(res)
   }
 
@@ -33,7 +30,6 @@ object Programs {
     for {
       testResult <- runTest[T, Result, Target, TestProp](nextTest)
       testScore <- Monad[T].pure(test.compScore(testResult))
-      //_ <- presenter.show(testScore)
     } yield(testScore)
   }
 
@@ -46,7 +42,6 @@ object Programs {
     for {
       testScore <- testRunner[T, Result, Target, TgSpace, TestProp](10)
       _ <- presenter.show(testScore)
-      //_ <- presenter.show(lastScore.getOrElse(Summary(0, 0)))
       c <- Monad[T].pure(test.combScores(testScore, lastScore.getOrElse(testScore)))
       _ <- presenter.show(c)
       _ <- presenter.show("Type q to quit")
