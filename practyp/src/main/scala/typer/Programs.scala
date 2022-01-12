@@ -12,7 +12,7 @@ import cats.implicits._
 object Programs {
 
   def runTest[T[_]: Monad, Result, Target, TestProp](testInput: Target)
-    (implicit test: TypingTest[T, Result, Target, TestProp],
+    (implicit test: Tester[T, Result, Target, TestProp],
       presenter: Presenter[T]
     ): T[TestProp] = {
     for {
@@ -20,13 +20,13 @@ object Programs {
     } yield(res)
   }
 
-  def testRunner[T[_]: Monad, Result, Target, TgSpace[Target], TestProp](n: Int)
-    (implicit test: TypingTest[T, Result, Target, TestProp],
+  def testRunner[T[_]: Monad, Result, Target, TgSpace[Target], TestProp](testSize: Int)
+    (implicit test: Tester[T, Result, Target, TestProp],
       presenter: Presenter[T],
       targetSpace: TgSpace[Target],
       getNextTarget: (TgSpace[Target], Int) => Target
     ): T[Summary] = {
-    val nextTest = getNextTarget(targetSpace, n)
+    val nextTest = getNextTarget(targetSpace, testSize)
     for {
       testResult <- runTest[T, Result, Target, TestProp](nextTest)
       testScore <- Monad[T].pure(test.compScore(testResult))
@@ -34,7 +34,7 @@ object Programs {
   }
 
   def askMenu[T[_]: Monad, Result, Target, TgSpace[Target], TestProp](lastScore: List[Option[Summary]])
-    (implicit test: TypingTest[T, Result, Target, TestProp],
+    (implicit test: Tester[T, Result, Target, TestProp],
       presenter: Presenter[T],
       targetSpace: TgSpace[Target],
       getNextTarget: (TgSpace[Target], Int) => Target
@@ -44,7 +44,6 @@ object Programs {
       _ <- presenter.show(test.combScores(lastScore).toString)
       testScore <- testRunner[T, Result, Target, TgSpace, TestProp](10)
       _ <- presenter.show(testScore.toString)
-      //c <- Monad[T].pure(test.combScores(testScore, lastScore.getOrElse(testScore)))
       _ <- presenter.show("Type q to quit")
       choice <- presenter.getOption()
       _ <- choice match {

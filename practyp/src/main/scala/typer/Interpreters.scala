@@ -20,11 +20,8 @@ object Interpreters {
     val tabularChar = "\t"
   }
 
-  
-
-  implicit val typingTestImplicit: TypingTest[IO, String, String, TestProperties[String, String]] =
-    new TypingTest[IO, String, String, TestProperties[String, String]] {
-      def getResult(target: String)(implicit presenter: Presenter[IO]): IO[TestProperties[String, String]] = {
+  object TesterImpl extends Tester[IO, String, String, TestProperties[String, String]] {
+    def getResult(target: String)(implicit presenter: Presenter[IO]): IO[TestProperties[String, String]] = {
         for {
           _ <- presenter.showForInput(target)
           timerStart <- Clock[IO].monotonic
@@ -54,9 +51,9 @@ object Interpreters {
           }
         }
       }
-    }
+  }
 
-  implicit val presenter: Presenter[IO] = new Presenter[IO] {
+  object PresenterImpl extends Presenter[IO] {
     def flush(): IO[Unit] = IO(println(shellPrettyShow.clearScreen))
     def show(content: String): IO[Unit] = IO(println(content))
     def showForInput(content: String): IO[Unit] =
@@ -81,6 +78,9 @@ object Interpreters {
 
   val mapTargetInstance = new mapTargetSpace()
 
+
+  implicit val typingTestImplicit: Tester[IO, String, String, TestProperties[String, String]] = TesterImpl
+  implicit val presenter: Presenter[IO] = PresenterImpl
   implicit val implTargetSpace: Map[String, Int] = mapTargetInstance.internalMap
   implicit def getNextTargetString(tg: Map[String, Int], n: Int): String = mapTargetInstance.next(n)
 }
