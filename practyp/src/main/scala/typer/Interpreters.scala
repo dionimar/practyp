@@ -63,6 +63,16 @@ object Interpreters {
       _ <- IO(print(shellPrettyShow.tabularChar))
       output <- IO(readLine())
     } yield(output)
+    def showSummary(summ: Summary): IO[Unit] = {
+      for {
+        _ <- IO(print(shellPrettyShow.tabularChar))
+        _ <- IO(println("############################################################################"))
+        _ <- IO(print(shellPrettyShow.tabularChar))
+        _ <- IO(println(s"\t\t${summ.wpm} WPM\t|\t${summ.accuracy} acc"))
+        _ <- IO(print(shellPrettyShow.tabularChar))
+        _ <- IO(println("############################################################################\n"))
+      } yield()
+    }
   }
 
   class mapTargetSpace() {

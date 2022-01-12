@@ -16,6 +16,7 @@ trait Tester[F[_], Result, Target, TestProp] {
 trait Presenter[F[_]] {
   def flush(): F[Unit]
   def show(content: String): F[Unit]
+  def showSummary(summ: Summary): F[Unit]
   def showForInput(content: String): F[Unit]
   def getOption(): F[Either[Throwable, String]]
   def readInput(): F[String]

@@ -41,7 +41,7 @@ object Programs {
     ): T[Unit] = {
     for {
       _ <- presenter.flush()
-      _ <- presenter.show(test.combScores(lastScore).toString)
+      _ <- presenter.showSummary(test.combScores(lastScore))
       testScore <- testRunner[T, Result, Target, TgSpace, TestProp](10)
       _ <- presenter.show(testScore.toString)
       _ <- presenter.show("Type q to quit")
