@@ -17,7 +17,7 @@ object Interpreters {
 
   object shellPrettyShow {
     val clearScreen = "\u001b[2J"
-    def tabulatedShow(str: String) = "\t" + str
+    val tabularChar = "\t"
   }
 
   
@@ -26,7 +26,7 @@ object Interpreters {
     new TypingTest[IO, String, String, TestProperties[String, String]] {
       def getResult(target: String)(implicit presenter: Presenter[IO]): IO[TestProperties[String, String]] = {
         for {
-          _ <- presenter.show(shellPrettyShow.clearScreen + shellPrettyShow.tabulatedShow(target))
+          _ <- presenter.showForInput(target)
           timerStart <- Clock[IO].monotonic
           res <- presenter.readInput()
           timerEnd <- Clock[IO].monotonic
@@ -42,16 +42,28 @@ object Interpreters {
         new Summary(wpm, acc)
       }
 
-      def combScores(lastScore: Summary, currentScore: Summary): Summary = {
-        Summary((lastScore.wpm + currentScore.wpm) / 2, (lastScore.accuracy + currentScore.accuracy) / 2)
+      def combScores(scoreList: List[Option[Summary]]): Summary = {
+        scoreList match {
+          case None :: Nil => Summary(0.0, 0.0)
+          case _ => {
+            val sl = scoreList.flatten
+            val size = sl.length
+            val wpms = sl.map(x => x.wpm).foldRight(0.0)(_ + _)
+            val accs = sl.map(x => x.accuracy).foldRight(0.0)(_ + _)
+            new Summary(wpms/size, accs/size)
+          }
+        }
       }
     }
 
   implicit val presenter: Presenter[IO] = new Presenter[IO] {
-    def show[T](content: T): IO[Unit] = IO(println(content))
+    def flush(): IO[Unit] = IO(println(shellPrettyShow.clearScreen))
+    def show(content: String): IO[Unit] = IO(println(content))
+    def showForInput(content: String): IO[Unit] =
+      IO(println(shellPrettyShow.tabularChar + content))
     def getOption(): IO[Either[Throwable, String]] = IO(Try(readChar().toString).toEither)
     def readInput(): IO[String] = for {
-      _ <- IO(print(shellPrettyShow.tabulatedShow("")))
+      _ <- IO(print(shellPrettyShow.tabularChar))
       output <- IO(readLine())
     } yield(output)
   }

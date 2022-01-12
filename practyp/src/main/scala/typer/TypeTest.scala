@@ -8,13 +8,15 @@ trait TypingTest[F[_], Result, Target, TestProp] {
   // compute a single test score
   def compScore(testProperties: TestProp): Summary
   // combine function to extract an aggregated score for current and previous one
-  def combScores(lastScore: Summary, currentScore: Summary): Summary
+  def combScores(scoreList: List[Option[Summary]]): Summary
 }
 // TypingTest properties should be defined in companion object
 object TypingTest {}
 
 trait Presenter[F[_]] {
-  def show[T](content: T): F[Unit]
+  def flush(): F[Unit]
+  def show(content: String): F[Unit]
+  def showForInput(content: String): F[Unit]
   def getOption(): F[Either[Throwable, String]]
   def readInput(): F[String]
 }

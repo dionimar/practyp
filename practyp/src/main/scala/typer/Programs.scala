@@ -33,23 +33,23 @@ object Programs {
     } yield(testScore)
   }
 
-  def askMenu[T[_]: Monad, Result, Target, TgSpace[Target], TestProp](lastScore: Option[Summary])
+  def askMenu[T[_]: Monad, Result, Target, TgSpace[Target], TestProp](lastScore: List[Option[Summary]])
     (implicit test: TypingTest[T, Result, Target, TestProp],
       presenter: Presenter[T],
       targetSpace: TgSpace[Target],
       getNextTarget: (TgSpace[Target], Int) => Target
     ): T[Unit] = {
     for {
+      _ <- presenter.flush()
+      _ <- presenter.show(test.combScores(lastScore).toString)
       testScore <- testRunner[T, Result, Target, TgSpace, TestProp](10)
-      _ <- presenter.show(testScore)
-      c <- Monad[T].pure(test.combScores(testScore, lastScore.getOrElse(testScore)))
-      _ <- presenter.show("Aggregated Results")
-      _ <- presenter.show(c)
+      _ <- presenter.show(testScore.toString)
+      //c <- Monad[T].pure(test.combScores(testScore, lastScore.getOrElse(testScore)))
       _ <- presenter.show("Type q to quit")
       choice <- presenter.getOption()
       _ <- choice match {
         case Right("q") => Monad[T].pure({})
-        case other => askMenu[T, Result, Target, TgSpace, TestProp](Some(testScore))
+        case other => askMenu[T, Result, Target, TgSpace, TestProp](Some(testScore) :: lastScore)
       }
     } yield()
   }
